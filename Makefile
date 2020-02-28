@@ -13,8 +13,12 @@ bin/gocovmerge:
 
 .PHONY: autobahn
 autobahn: clean bin/reporter 
-	./autobahn/script/test.sh --build
+	./autobahn/script/test.sh --build --follow-logs
 	bin/reporter $(PWD)/autobahn/report/index.json
+
+.PHONY: autobahn/report
+autobahn/report: bin/reporter
+	./bin/reporter -http localhost:5555 ./autobahn/report/index.json
 
 test:
 	go test -coverprofile=ws.coverage .
