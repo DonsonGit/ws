@@ -198,10 +198,10 @@ func (p Parameters) Option() httphead.Option {
 	return opt
 }
 
-// Negotiator contains logic of compression extension parameters negotiation.
+// Extension contains logic of compression extension parameters negotiation.
 // It might be reused between different upgrades with Reset() being called
 // after each.
-type Negotiator struct {
+type Extension struct {
 	// Parameters is specification of extension parameters server is going to
 	// accept.
 	Parameters Parameters
@@ -215,7 +215,7 @@ type Negotiator struct {
 //
 // It may return zero option (i.e. one which Name field is nil) alongside with
 // nil error.
-func (n *Negotiator) Negotiate(opt httphead.Option) (accept httphead.Option, err error) {
+func (n *Extension) Negotiate(opt httphead.Option) (accept httphead.Option, err error) {
 	if !bytes.Equal(opt.Name, ExtensionNameBytes) {
 		return
 	}
@@ -267,12 +267,12 @@ func (n *Negotiator) Negotiate(opt httphead.Option) (accept httphead.Option, err
 
 // Accepted returns parameters parsed during last negotiation and a flag that
 // reports whether they were accepted.
-func (n *Negotiator) Accepted() (_ Parameters, accepted bool) {
+func (n *Extension) Accepted() (_ Parameters, accepted bool) {
 	return n.params, n.accepted
 }
 
-// Reset resets Negotiator for further reuse.
-func (n *Negotiator) Reset() {
+// Reset resets extension for further reuse.
+func (n *Extension) Reset() {
 	n.accepted = false
 	n.params = Parameters{}
 }

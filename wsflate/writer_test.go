@@ -68,14 +68,14 @@ func TestExtensionNegotiation(t *testing.T) {
 			io.TeeReader(server, &req),
 			io.MultiWriter(server, &res),
 		}
-		n := Negotiator{
+		e := Extension{
 			Parameters: Parameters{
 				ServerNoContextTakeover: true,
 				ClientNoContextTakeover: true,
 			},
 		}
 		u := ws.Upgrader{
-			Negotiate: n.Negotiate,
+			Negotiate: e.Negotiate,
 		}
 		hs, err := u.Upgrade(&conn)
 		if err != nil {
@@ -83,7 +83,7 @@ func TestExtensionNegotiation(t *testing.T) {
 			return
 		}
 
-		p, ok := n.Accepted()
+		p, ok := e.Accepted()
 		t.Logf("accepted: %t %+v", ok, p)
 
 		fmt.Println(req.String())

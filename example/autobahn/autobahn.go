@@ -179,14 +179,14 @@ func wsutilHandler(res http.ResponseWriter, req *http.Request) {
 }
 
 func wsflateHandler(w http.ResponseWriter, r *http.Request) {
-	n := wsflate.Negotiator{
+	e := wsflate.Extension{
 		Parameters: wsflate.Parameters{
 			ServerNoContextTakeover: true,
 			ClientNoContextTakeover: true,
 		},
 	}
 	u := ws.HTTPUpgrader{
-		Negotiate: n.Negotiate,
+		Negotiate: e.Negotiate,
 	}
 	conn, _, _, err := u.Upgrade(r, w)
 	if err != nil {
@@ -195,7 +195,7 @@ func wsflateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	if _, ok := n.Accepted(); !ok {
+	if _, ok := e.Accepted(); !ok {
 		log.Printf("no accepted extension")
 		return
 	}
