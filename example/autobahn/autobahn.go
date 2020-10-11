@@ -200,6 +200,8 @@ func wsflateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Using nil as a destination io.Writer since we will Reset() it in the
+	// loop below.
 	fw := wsflate.NewWriter(nil, func(w io.Writer) wsflate.Compressor {
 		// As flat.NewWriter() docs says:
 		//   If level is in the range [-2, 9] then the error returned will
@@ -207,6 +209,8 @@ func wsflateHandler(w http.ResponseWriter, r *http.Request) {
 		f, _ := flate.NewWriter(w, 9)
 		return f
 	})
+	// Using nil as a source io.Reader since we will Reset() it in the loop
+	// below.
 	fr := wsflate.NewReader(nil, func(r io.Reader) wsflate.Decompressor {
 		return flate.NewReader(r)
 	})
@@ -229,13 +233,11 @@ func wsflateHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 	for {
-		//log.Printf("reading next frame")
 		h, err := rd.NextFrame()
 		if err != nil {
 			log.Printf("next frame error: %v", err)
 			return
 		}
-		//log.Printf("received frame: %+v", h)
 		if h.OpCode.IsControl() {
 			if err := controlHandler(h, &rd); err != nil {
 				log.Printf("handle control frame error: %v", err)
@@ -252,9 +254,12 @@ func wsflateHandler(w http.ResponseWriter, r *http.Request) {
 		if _, err = io.Copy(fw, fr); err != nil {
 			log.Fatal(err)
 		}
+		// Flush the flate writer.
 		if err = fw.Flush(); err != nil {
 			log.Fatal(err)
 		}
+		// Flush WebSocket fragment writer. We could send multiple fragments
+		// for large messages.
 		if err = wr.Flush(); err != nil {
 			log.Fatal(err)
 		}
