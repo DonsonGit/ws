@@ -37,7 +37,10 @@ type Reader struct {
 	// bytes are not valid UTF-8 sequence, ErrInvalidUTF8 returned.
 	CheckUTF8 bool
 
-	Extensions []Extension
+	// Extensions is a list of negotiated extensions for reader Source.
+	// It is used to meet the specs and clear appropriate bits in fragment
+	// header RSV segment.
+	Extensions []RecvExtension
 
 	// TODO(gobwas): add max frame size limit here.
 
@@ -185,7 +188,7 @@ func (r *Reader) NextFrame() (hdr ws.Header, err error) {
 	}
 
 	for _, ext := range r.Extensions {
-		hdr.Rsv, err = ext.Extend(r.fseq, hdr.Rsv)
+		hdr.Rsv, err = ext.BitsRecv(r.fseq, hdr.Rsv)
 		if err != nil {
 			return hdr, err
 		}

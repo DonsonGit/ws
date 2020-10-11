@@ -1,7 +1,6 @@
 package wsflate
 
 import (
-	"bytes"
 	"fmt"
 	"strconv"
 
@@ -24,13 +23,9 @@ var (
 	clientNoContextTakeoverBytes = []byte(clientNoContextTakeover)
 	serverMaxWindowBitsBytes     = []byte(serverMaxWindowBits)
 	clientMaxWindowBitsBytes     = []byte(clientMaxWindowBits)
-
-	windowBits [8][]byte
 )
 
-func isValidBits(x int) bool {
-	return 8 <= x && x <= 15
-}
+var windowBits [8][]byte
 
 func init() {
 	for i := range windowBits {
@@ -47,7 +42,7 @@ type Parameters struct {
 }
 
 // WindowBits specifies window size accordingly to RFC.
-// Use its Bytes() method to obtain actual size of window.
+// Use its Bytes() method to obtain actual size of window in bytes.
 type WindowBits byte
 
 // Defined reports whether window bits were specified.
@@ -60,44 +55,9 @@ func (b WindowBits) Bytes() int {
 	return 1 << uint(b)
 }
 
-func bitsFromASCII(p []byte) (WindowBits, bool) {
-	n, ok := httphead.IntFromASCII(p)
-	if !ok || !isValidBits(n) {
-		return 0, false
-	}
-	return WindowBits(n), true
-}
-
-func setBits(opt *httphead.Option, name []byte, bits WindowBits) {
-	if bits == 0 {
-		return
-	}
-	if bits == 1 {
-		opt.Parameters.Set(name, nil)
-		return
-	}
-	if !isValidBits(int(bits)) {
-		panic(fmt.Sprintf("wsflate: invalid bits value: %d", bits))
-	}
-	opt.Parameters.Set(name, windowBits[bits-8])
-}
-
-func setBool(opt *httphead.Option, name []byte, flag bool) {
-	if flag {
-		opt.Parameters.Set(name, nil)
-	}
-}
-
 const (
 	MaxLZ77WindowSize = 32768
 )
-
-func paramError(reason string, key, val []byte) error {
-	return fmt.Errorf(
-		"wsflate: %s extension parameter %q: %q",
-		reason, key, val,
-	)
-}
 
 // Parse reads parameters from given HTTP header opiton accordingly to RFC.
 //
@@ -198,81 +158,41 @@ func (p Parameters) Option() httphead.Option {
 	return opt
 }
 
-// Extension contains logic of compression extension parameters negotiation.
-// It might be reused between different upgrades with Reset() being called
-// after each.
-type Extension struct {
-	// Parameters is specification of extension parameters server is going to
-	// accept.
-	Parameters Parameters
-
-	accepted bool
-	params   Parameters
+func isValidBits(x int) bool {
+	return 8 <= x && x <= 15
 }
 
-// Negotiate parses given HTTP header option and returns (if any) header option
-// which describes accepted parameters.
-//
-// It may return zero option (i.e. one which Name field is nil) alongside with
-// nil error.
-func (n *Extension) Negotiate(opt httphead.Option) (accept httphead.Option, err error) {
-	if !bytes.Equal(opt.Name, ExtensionNameBytes) {
-		return
+func bitsFromASCII(p []byte) (WindowBits, bool) {
+	n, ok := httphead.IntFromASCII(p)
+	if !ok || !isValidBits(n) {
+		return 0, false
 	}
-	if n.accepted {
-		// Negotiate might be called multiple times during upgrade.
-		// We stick to first one accepted extension since they must be passed
-		// in ordered by preference.
-		return
-	}
-
-	want := n.Parameters
-
-	if err = n.params.Parse(opt); err != nil {
-		return
-	}
-	{
-		offer := n.params.ServerMaxWindowBits
-		want := want.ServerMaxWindowBits
-		if offer > want {
-			// A server declines an extension negotiation offer
-			// with this parameter if the server doesn't support
-			// it.
-			return
-		}
-	}
-	{
-		// If a received extension negotiation offer has the
-		// "client_max_window_bits" extension parameter, the server MAY
-		// include the "client_max_window_bits" extension parameter in the
-		// corresponding extension negotiation response to the offer.
-		offer := n.params.ClientMaxWindowBits
-		want := want.ClientMaxWindowBits
-		if want > offer {
-			return
-		}
-	}
-	{
-		offer := n.params.ServerNoContextTakeover
-		want := want.ServerNoContextTakeover
-		if offer && !want {
-			return
-		}
-	}
-
-	n.accepted = true
-
-	return want.Option(), nil
+	return WindowBits(n), true
 }
 
-// Accepted returns parameters parsed during last negotiation and a flag that
-// reports whether they were accepted.
-func (n *Extension) Accepted() (_ Parameters, accepted bool) {
-	return n.params, n.accepted
+func setBits(opt *httphead.Option, name []byte, bits WindowBits) {
+	if bits == 0 {
+		return
+	}
+	if bits == 1 {
+		opt.Parameters.Set(name, nil)
+		return
+	}
+	if !isValidBits(int(bits)) {
+		panic(fmt.Sprintf("wsflate: invalid bits value: %d", bits))
+	}
+	opt.Parameters.Set(name, windowBits[bits-8])
 }
 
-// Reset resets extension for further reuse.
-func (n *Extension) Reset() {
-	n.accepted = false
-	n.params = Parameters{}
+func setBool(opt *httphead.Option, name []byte, flag bool) {
+	if flag {
+		opt.Parameters.Set(name, nil)
+	}
+}
+
+func paramError(reason string, key, val []byte) error {
+	return fmt.Errorf(
+		"wsflate: %s extension parameter %q: %q",
+		reason, key, val,
+	)
 }

@@ -134,7 +134,10 @@ type Writer struct {
 	Op    ws.OpCode
 	State ws.State // Can not be changed.
 
-	Extensions []Extension
+	// Extensions is a list of negotiated extensions for writer Dest.
+	// It is used to meet the specs and set appropriate bits in fragment
+	// header RSV segment.
+	Extensions []SendExtension
 
 	Limit        int
 	DisableFlush bool
@@ -439,7 +442,7 @@ func (w *Writer) flushFragment(fin bool) (err error) {
 		}
 	)
 	for _, ext := range w.Extensions {
-		header.Rsv, err = ext.Extend(w.fseq, header.Rsv)
+		header.Rsv, err = ext.BitsSend(w.fseq, header.Rsv)
 		if err != nil {
 			return err
 		}

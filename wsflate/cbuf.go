@@ -63,9 +63,9 @@ type suffixedReader struct {
 	suffix [9]byte
 }
 
-func (r *suffixedReader) Read(p []byte) (int, error) {
+func (r *suffixedReader) Read(p []byte) (n int, err error) {
 	if r.r != nil {
-		n, err := r.r.Read(p)
+		n, err = r.r.Read(p)
 		if err == io.EOF {
 			err = nil
 			r.r = nil
@@ -75,7 +75,7 @@ func (r *suffixedReader) Read(p []byte) (int, error) {
 	if r.pos >= len(r.suffix) {
 		return 0, io.EOF
 	}
-	n := copy(p, r.suffix[r.pos:])
+	n = copy(p, r.suffix[r.pos:])
 	r.pos += n
 	return n, nil
 }

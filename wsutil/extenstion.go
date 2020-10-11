@@ -1,13 +1,29 @@
 package wsutil
 
-type Extension interface {
-	Extend(frameSeq int, rsv byte) (byte, error)
+// RecvExtension is an interface for clearing fragment header RSV bits.
+type RecvExtension interface {
+	BitsRecv(seq int, rsv byte) (byte, error)
 }
 
-var _ Extension = ExtensionFunc(nil)
+// RecvExtensionFunc is an adapter to allow the use of ordinary functions as
+// RecvExtension.
+type RecvExtensionFunc func(int, byte) (byte, error)
 
-type ExtensionFunc func(frameSeq int, rsv byte) (byte, error)
+// BitsRecv implements RecvExtension.
+func (fn RecvExtensionFunc) BitsRecv(seq int, rsv byte) (byte, error) {
+	return fn(seq, rsv)
+}
 
-func (fn ExtensionFunc) Extend(fseq int, rsv byte) (byte, error) {
-	return fn(fseq, rsv)
+// SendExtension is an interface for setting fragment header RSV bits.
+type SendExtension interface {
+	BitsSend(seq int, rsv byte) (byte, error)
+}
+
+// SendExtensionFunc is an adapter to allow the use of ordinary functions as
+// SendExtension.
+type SendExtensionFunc func(int, byte) (byte, error)
+
+// BitsSend implements SendExtension.
+func (fn SendExtensionFunc) BitsSend(seq int, rsv byte) (byte, error) {
+	return fn(seq, rsv)
 }

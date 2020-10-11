@@ -199,21 +199,17 @@ func wsflateHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("no accepted extension")
 		return
 	}
-	fw := &wsflate.Writer{
-		Compressor: func(w io.Writer) wsflate.Compressor {
-			// As flat.NewWriter() docs says:
-			//   If level is in the range [-2, 9] then the error returned will
-			//   be nil.
-			r, _ := flate.NewWriter(w, 9)
-			return r
-		},
-	}
-	fr := &wsflate.Reader{
-		Decompressor: func(r io.Reader) wsflate.Decompressor {
-			rd := flate.NewReader(r)
-			return rd
-		},
-	}
+
+	fw := wsflate.NewWriter(nil, func(w io.Writer) wsflate.Compressor {
+		// As flat.NewWriter() docs says:
+		//   If level is in the range [-2, 9] then the error returned will
+		//   be nil.
+		f, _ := flate.NewWriter(w, 9)
+		return f
+	})
+	fr := wsflate.NewReader(nil, func(r io.Reader) wsflate.Decompressor {
+		return flate.NewReader(r)
+	})
 	// Note that control frames are all written without compression.
 	controlHandler := wsutil.ControlFrameHandler(conn, ws.StateServerSide)
 	rd := wsutil.Reader{
@@ -221,15 +217,15 @@ func wsflateHandler(w http.ResponseWriter, r *http.Request) {
 		State:          ws.StateServerSide | ws.StateExtended,
 		CheckUTF8:      false,
 		OnIntermediate: controlHandler,
-		Extensions: []wsutil.Extension{
-			wsutil.ExtensionFunc(wsflate.ExtendRead),
+		Extensions: []wsutil.RecvExtension{
+			wsutil.RecvExtensionFunc(wsflate.BitsRecv),
 		},
 	}
 	wr := wsutil.Writer{
 		Dest:  conn,
 		State: ws.StateServerSide | ws.StateExtended,
-		Extensions: []wsutil.Extension{
-			wsutil.ExtensionFunc(wsflate.ExtendWrite),
+		Extensions: []wsutil.SendExtension{
+			wsutil.SendExtensionFunc(wsflate.BitsSend),
 		},
 	}
 	for {

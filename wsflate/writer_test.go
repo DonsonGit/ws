@@ -16,33 +16,26 @@ import (
 
 func TestWriter(t *testing.T) {
 	var buf bytes.Buffer
-	w := Writer{
-		Dest: &buf,
-		Compressor: func(w io.Writer) Compressor {
-			r, err := flate.NewWriter(w, 9)
-			if err != nil {
-				t.Fatal(err)
-			}
-			return r
-		},
-	}
+	w := NewWriter(&buf, func(w io.Writer) Compressor {
+		fw, _ := flate.NewWriter(w, 9)
+		return fw
+	})
 	data := []byte("hello, flate!")
 	for _, p := range bytes.SplitAfter(data, []byte{','}) {
 		w.Write(p)
 		w.Flush()
 	}
-	w.Close()
+	if err := w.Close(); err != nil {
+		t.Fatalf("unexpected Close() error: %v", err)
+	}
 	if err := w.Err(); err != nil {
 		t.Fatalf("unexpected Writer error: %v", err)
 	}
 
-	r := Reader{
-		Source: &buf,
-		Decompressor: func(r io.Reader) Decompressor {
-			return flate.NewReader(r)
-		},
-	}
-	act, err := ioutil.ReadAll(&r)
+	r := NewReader(&buf, func(r io.Reader) Decompressor {
+		return flate.NewReader(r)
+	})
+	act, err := ioutil.ReadAll(r)
 	if err != nil {
 		t.Fatalf("unexpected Reader error: %v", err)
 	}
