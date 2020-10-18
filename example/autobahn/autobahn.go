@@ -255,7 +255,7 @@ func wsflateHandler(w http.ResponseWriter, r *http.Request) {
 			log.Fatal(err)
 		}
 		// Flush the flate writer.
-		if err = fw.Flush(); err != nil {
+		if err = fw.Close(); err != nil {
 			log.Fatal(err)
 		}
 		// Flush WebSocket fragment writer. We could send multiple fragments

@@ -56,7 +56,7 @@ func (b WindowBits) Bytes() int {
 }
 
 const (
-	MaxLZ77WindowSize = 32768
+	MaxLZ77WindowSize = 32768 // 2^15
 )
 
 // Parse reads parameters from given HTTP header opiton accordingly to RFC.

@@ -10,8 +10,8 @@ import (
 
 // Extension contains logic of compression extension parameters negotiation
 // made during HTTP WebSocket handshake.
-// It might be reused between different upgrades with Reset() being called
-// after each.
+// It might be reused between different upgrades (but not concurrently) with
+// Reset() being called after each.
 type Extension struct {
 	// Parameters is specification of extension parameters server is going to
 	// accept.
