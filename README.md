@@ -391,6 +391,10 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		// Reset extension after previous upgrades.
+		e.Reset()
+
 		_, err = u.Upgrade(conn)
 		if err != nil {
 			log.Printf("upgrade error: %s", err)
@@ -402,12 +406,8 @@ func main() {
 			continue
 		}
 
-		// Reset extension for further connections upgrade.
-		e.Reset()
-
 		go func() {
 			defer conn.Close()
-
 			for {
 				frame, err := ws.ReadFrame(conn)
 				if err != nil {

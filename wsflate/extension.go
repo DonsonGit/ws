@@ -39,6 +39,7 @@ func (n *Extension) Negotiate(opt httphead.Option) (accept httphead.Option, err 
 
 	want := n.Parameters
 
+	// NOTE: Parse() resets params inside, so no worries.
 	if err = n.params.Parse(opt); err != nil {
 		return
 	}

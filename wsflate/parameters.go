@@ -77,7 +77,7 @@ func (p *Parameters) Parse(opt httphead.Option) (err error) {
 		serverNoContextTakeoverSeen
 	)
 
-	// Reset to not mix parsed data with previously parsed values.
+	// Reset to not mix parsed data from previous Parse() calls.
 	*p = Parameters{}
 
 	var seen byte
