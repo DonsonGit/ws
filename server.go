@@ -54,6 +54,9 @@ var (
 		RejectionStatus(http.StatusBadRequest),
 		RejectionReason(fmt.Sprintf("handshake error: bad %q header", headerSecVersion)),
 	)
+	ErrOk = RejectConnectionError(
+		RejectionStatus(http.StatusOK),
+	)
 )
 
 // ErrMalformedResponse is returned by Dialer to indicate that server response
@@ -299,17 +302,7 @@ type Upgrader struct {
 	// Note that if present, it will be written in any result of handshake.
 	Header HandshakeHeader
 
-	// OnTCP is a callback that will be called after request line
-	// successful parsing.
-	//
-	// The function will be called before OnRequest, and it can be used
-	// to deal some additional situation, like HTTP health check.
-	//
-	// If returned error is non-nil then connection is rejected and response is
-	// sent with appropriate HTTP error code and body set to error message.
-	//
-	// RejectConnectionError could be used to get more control on response.
-	OnTCP func(method, uri []byte, major, minor int) error
+	Hijack func(conn io.ReadWriteCloser, req httpRequestLine) error
 
 	// OnRequest is a callback that will be called after request line
 	// successful parsing.
@@ -424,6 +417,12 @@ func (u Upgrader) Upgrade(conn io.ReadWriter) (hs Handshake, err error) {
 		0: u.Header,
 	}
 
+	if hijack := u.Hijack; hijack != nil {
+		if tc, ok := conn.(io.ReadWriteCloser); ok {
+			hijack(tc, req)
+		}
+	}
+
 	// Parse and check HTTP request.
 	// As RFC6455 says:
 	//   The client's opening handshake consists of the following parts. If the
@@ -442,9 +441,6 @@ func (u Upgrader) Upgrade(conn io.ReadWriter) (hs Handshake, err error) {
 	// Even if RFC says "1.1 or higher" without mentioning the part of the
 	// version, we apply it only to minor part.
 	switch {
-	case u.OnTCP != nil:
-		err = u.OnTCP(req.method, req.uri, req.major, req.minor)
-
 	case req.major != 1 || req.minor < 1:
 		// Abort processing the whole request because we do not even know how
 		// to actually parse it.
