@@ -25,6 +25,9 @@ const (
 
 // Handshake represents handshake result.
 type Handshake struct {
+	// if hijack success, the true will be return
+	Hijack bool
+
 	// Protocol is the subprotocol selected during handshake.
 	Protocol string
 

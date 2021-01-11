@@ -302,7 +302,7 @@ type Upgrader struct {
 	// Note that if present, it will be written in any result of handshake.
 	Header HandshakeHeader
 
-	Hijack func(conn io.ReadWriteCloser, method, uri string, major, minor int) error
+	Hijack func(conn io.ReadWriteCloser, method, uri string, major, minor int) (success bool)
 
 	// OnRequest is a callback that will be called after request line
 	// successful parsing.
@@ -419,7 +419,10 @@ func (u Upgrader) Upgrade(conn io.ReadWriter) (hs Handshake, err error) {
 
 	if hijack := u.Hijack; hijack != nil {
 		if tc, ok := conn.(io.ReadWriteCloser); ok {
-			hijack(tc, btsToString(req.method), btsToString(req.uri), req.major, req.minor)
+			hs.Hijack = hijack(tc, btsToString(req.method), btsToString(req.uri), req.major, req.minor)
+			if hs.Hijack {
+				return
+			}
 		}
 	}
 
